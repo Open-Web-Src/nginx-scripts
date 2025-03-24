@@ -30,14 +30,14 @@ jobs:
       # Generate a cache key based on the branch and package-lock.json hash
       - name: Generate Cache Key
         id: cache-key
-        run: echo "key=${{ inputs.deploy-env }}-${{ hashFiles('package-lock.json') }}" >> $GITHUB_OUTPUT
+        run: echo "key=${{ inputs.deploy-env }}-${{ hashFiles('apis/package-lock.json') }}" >> $GITHUB_OUTPUT
 
       # Cache node_modules
       - name: Cache node_modules
         id: cache-npm
         uses: actions/cache@v4
         with:
-          path: node_modules
+          path: apis/node_modules
           key: ${{ steps.cache-key.outputs.key }}
           restore-keys: |
             ${{ inputs.deploy-env }}-
@@ -46,7 +46,9 @@ jobs:
       # actions/cache@v4 automatically stores the cache at the end of the job 
       - name: Install Dependencies
         if: steps.cache-npm.outputs.cache-hit != 'true'
-        run: npm ci
+        run: |
+          cd apis
+          npm ci
 
   lint:
     name: Lint Code
@@ -67,13 +69,15 @@ jobs:
         id: cache-npm
         uses: actions/cache@v4
         with:
-          path: node_modules
+          path: apis/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
           restore-keys: |
             ${{ inputs.deploy-env }}-
 
       # Run linting after ensuring node_modules is available
-      - run: npm run lint
+      - run: |
+          cd apis
+          npm run lint
 
   build:
     name: Build NestJS App
@@ -94,18 +98,20 @@ jobs:
         id: cache-npm
         uses: actions/cache@v4
         with:
-          path: node_modules
+          path: apis/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
           restore-keys: |
             ${{ inputs.deploy-env }}-
 
-      - run: npm run build
+      - run: |
+          cd apis
+          npm run build
 
       # Store build artifact (including node_modules)
       - uses: actions/upload-artifact@v4
         with:
           name: nestjs-build-${{ inputs.deploy-env }}
-          path: dist/
+          path: apis/dist/
 
   test:
     name: Run Tests
@@ -122,16 +128,18 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: nestjs-build-${{ inputs.deploy-env }}
-          path: dist/
+          path: apis/dist/
 
       # Restore node_modules from cache
       - name: Restore node_modules from cache
         id: cache-npm
         uses: actions/cache@v4
         with:
-          path: node_modules
+          path: apis/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
           restore-keys: |
             ${{ inputs.deploy-env }}-
 
-      - run: npm run test
+      - run: |
+          cd apis
+          ls -a

@@ -12,7 +12,22 @@
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
         },
         "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:your-org/your-repo:*"
+          "token.actions.githubusercontent.com:sub": "repo:Open-Web-Src/nginx-scripts:*"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:oidc-provider/gitlab.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "gitlab.com:aud": "https://gitlab.com"
+        },
+        "StringLike": {
+          "gitlab.com:sub": "project_path:kimhiepninh02121997/nginx-scripts:*"
         }
       }
     }

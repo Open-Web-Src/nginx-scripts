@@ -43,7 +43,7 @@ runs:
     - name: Transfer Build Files to EC2
       shell: bash
       run: |
-        scp -o StrictHostKeyChecking=no -i private_key.pem -r dist node_modules ${{ inputs.ec2_user }}@${{ inputs.ec2_host }}:/home/${{ inputs.ec2_user }}/nestjs-app/
+        scp -o StrictHostKeyChecking=no -i private_key.pem -r apis/dist apis/node_modules ${{ inputs.ec2_user }}@${{ inputs.ec2_host }}:/home/${{ inputs.ec2_user }}/nestjs-app/
 
     - name: Deploy to EC2
       shell: bash
