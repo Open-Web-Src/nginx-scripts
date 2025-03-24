@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["secretsmanager:GetSecretValue"],
+      "Resource": "arn:aws:secretsmanager:us-east-1:YOUR_AWS_ACCOUNT_ID:secret:prod/v1.0.0/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["ssm:SendCommand"],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Environment": "prod"
+        }
+      }
+    }
+  ]
+}

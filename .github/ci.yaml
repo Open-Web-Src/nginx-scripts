@@ -1,0 +1,137 @@
+name: CI Workflow
+
+on:
+  workflow_call:
+    inputs:
+      deploy-env:
+        required: true
+        type: string
+    outputs:
+      cache-key:
+        description: "Generated cache key"
+        value: ${{ jobs.setup.outputs.cache-key }}
+
+jobs:
+  setup:
+    name: Cache Dependencies
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.deploy-env }}
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      # Generate a cache key based on the branch and package-lock.json hash
+      - name: Generate Cache Key
+        id: cache-key
+        run: echo "key=${{ inputs.deploy-env }}-${{ hashFiles('package-lock.json') }}" >> $GITHUB_OUTPUT
+
+      # Cache node_modules
+      - name: Cache node_modules
+        id: cache-npm
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            ${{ inputs.deploy-env }}-
+
+      # Install dependencies only if cache miss
+      # actions/cache@v4 automatically stores the cache at the end of the job 
+      - name: Install Dependencies
+        if: steps.cache-npm.outputs.cache-hit != 'true'
+        run: npm ci
+
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.deploy-env }}
+    needs: setup
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      # Restore node_modules from cache
+      - name: Restore node_modules from cache
+        id: cache-npm
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          restore-keys: |
+            ${{ inputs.deploy-env }}-
+
+      # Run linting after ensuring node_modules is available
+      - run: npm run lint
+
+  build:
+    name: Build NestJS App
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.deploy-env }}
+    needs: [setup, lint]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      
+      # Restore node_modules from cache
+      - name: Restore node_modules from cache
+        id: cache-npm
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          restore-keys: |
+            ${{ inputs.deploy-env }}-
+
+      - run: npm run build
+
+      # Store build artifact (including node_modules)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nestjs-build-${{ inputs.deploy-env }}
+          path: dist/
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.deploy-env }}
+    needs: [setup, build]
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      
+      # Restore build artifact
+      - uses: actions/download-artifact@v4
+        with:
+          name: nestjs-build-${{ inputs.deploy-env }}
+          path: dist/
+
+      # Restore node_modules from cache
+      - name: Restore node_modules from cache
+        id: cache-npm
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          restore-keys: |
+            ${{ inputs.deploy-env }}-
+
+      - run: npm run test

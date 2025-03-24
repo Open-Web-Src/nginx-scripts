@@ -1,0 +1,71 @@
+name: Deploy NestJS to EC2
+
+on:
+  push:
+    branches:
+      - dev
+      - stg
+      - main
+
+jobs:
+  set-env:
+    name: Set Deployment Environment
+    runs-on: ubuntu-latest
+    outputs:
+      deploy-env: ${{ steps.set-env.outputs.DEPLOY_ENV }}  # ✅ Pass evaluated DEPLOY_ENV
+    steps:
+      - name: Evaluate DEPLOY_ENV
+        id: set-env
+        run: echo "DEPLOY_ENV=${{ github.ref_name == 'main' && 'prod' || github.ref_name }}" >> $GITHUB_OUTPUT
+
+  ci:
+    name: Run CI Workflow
+    needs: set-env  # ✅ Ensure environment is set first
+    uses: ./.github/workflows/ci.yaml
+    with:
+      deploy-env: ${{ needs.set-env.outputs.deploy-env }}  # ✅ Pass DEPLOY_ENV to CI
+    secrets: inherit
+
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: [set-env, ci]
+    env:
+      DEPLOY_ENV: ${{ needs.set-env.outputs.deploy-env }}
+    environment: ${{ env.DEPLOY_ENV }}
+    permissions:
+      id-token: write  # Allows GitHub to request an OIDC token from AWS
+      contents: read    # Allows the workflow to read repository contents
+
+    steps:
+      - name: Configure AWS Credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/GitHubRole_${{ env.DEPLOY_ENV }}
+          aws-region: us-east-1
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nestjs-build-${{ env.DEPLOY_ENV }}
+          path: dist/
+
+      - name: Restore node_modules from cache
+        id: cache-npm
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.ci.outputs.cache-key }}
+          restore-keys: |
+            ${{ env.DEPLOY_ENV }}-
+
+      - name: Deploy using Composite Action
+        uses: ./.github/actions/deploy-to-ec2
+        with:
+          deploy_env: ${{ env.DEPLOY_ENV }}
+          ec2_host: ${{ secrets.EC2_HOST_${{ upper(env.DEPLOY_ENV) }} }}
+          ec2_user: ${{ secrets.EC2_USER_${{ upper(env.DEPLOY_ENV) }} }}
+          ec2_ssh_key: ${{ secrets.EC2_SSH_KEY_${{ upper(env.DEPLOY_ENV) }} }}
+          pm2_app_name: ${{ secrets.PM2_APP_NAME_${{ upper(env.DEPLOY_ENV) }} }}
+          aws_region: "us-east-1"
+          secret_id: "/${{ env.DEPLOY_ENV }}/v1.0.0/database"
