@@ -38,8 +38,8 @@ jobs:
       contents: read    # Allows the workflow to read repository contents
 
     steps:
-      - echo ${{ env.DEPLOY_ENV }}
-      - echo ${{ needs.ci.outputs.cache-key }}
+      - run: echo ${{ env.DEPLOY_ENV }}
+      - run: echo ${{ needs.ci.outputs.cache-key }}
       # - name: Configure AWS Credentials with OIDC
       #   uses: aws-actions/configure-aws-credentials@v4
       #   with:
