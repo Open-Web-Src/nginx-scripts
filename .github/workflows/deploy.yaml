@@ -32,7 +32,7 @@ jobs:
     needs: [set-env, ci]
     env:
       DEPLOY_ENV: ${{ needs.set-env.outputs.deploy-env }}
-    environment: ${{ env.DEPLOY_ENV }}
+    environment: ${{ needs.set-env.outputs.deploy-env }}
     permissions:
       id-token: write  # Allows GitHub to request an OIDC token from AWS
       contents: read    # Allows the workflow to read repository contents
