@@ -1,0 +1,62 @@
+name: "Deploy to EC2"
+description: "Deploys NestJS app to EC2"
+
+inputs:
+  deploy_env:
+    description: "Deployment Environment"
+    required: true
+  ec2_host:
+    description: "EC2 instance IP"
+    required: true
+  ec2_user:
+    description: "EC2 SSH User"
+    required: true
+  ec2_ssh_key:
+    description: "EC2 Private SSH Key"
+    required: true
+  pm2_app_name:
+    description: "PM2 process name"
+    required: true
+  aws_region:
+    description: "AWS Region"
+    required: true
+  secret_id:
+    description: "AWS Secrets Manager Secret ID"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Retrieve secret from AWS Secrets Manager
+      id: retrieve-secrets
+      uses: aws-actions/aws-secretsmanager-get-secrets@v2
+      with:
+        secret-ids: "${{ inputs.secret_id }}"
+        parse-json-secrets: true
+
+    - name: Setup SSH Key
+      shell: bash
+      run: |
+        echo "${{ inputs.ec2_ssh_key }}" > private_key.pem
+        chmod 600 private_key.pem
+
+    - name: Transfer Build Files to EC2
+      shell: bash
+      run: |
+        scp -o StrictHostKeyChecking=no -i private_key.pem -r apis/dist apis/node_modules ${{ inputs.ec2_user }}@${{ inputs.ec2_host }}:/home/${{ inputs.ec2_user }}/nestjs-app/
+
+    - name: Deploy to EC2
+      shell: bash
+      run: |
+        ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ inputs.ec2_user }}@${{ inputs.ec2_host }} << 'EOF'
+        cd /home/${{ inputs.ec2_user }}/nestjs-app
+
+        # Save environment variables
+        echo "DB_HOST=${{ steps.retrieve-secrets.outputs.DB_HOST_${{ upper(inputs.deploy_env) }} }}" > .env
+        echo "DB_USER=${{ steps.retrieve-secrets.outputs.DB_USER_${{ upper(inputs.deploy_env) }} }}" >> .env
+        echo "DB_PASSWORD=${{ steps.retrieve-secrets.outputs.DB_PASSWORD_${{ upper(inputs.deploy_env) }} }}" >> .env
+        echo "DB_NAME=${{ steps.retrieve-secrets.outputs.DB_NAME_${{ upper(inputs.deploy_env) }} }}" >> .env
+
+        # Restart application with PM2
+        pm2 restart ${{ inputs.pm2_app_name }}
+        EOF
