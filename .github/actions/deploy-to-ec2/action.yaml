@@ -24,6 +24,12 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Configure AWS Credentials with OIDC
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
+        
     - name: Retrieve secret from AWS Secrets Manager
       id: retrieve-secrets
       uses: aws-actions/aws-secretsmanager-get-secrets@v2
@@ -58,7 +64,7 @@ runs:
         echo "DB_USER=${{ steps.retrieve-secrets.outputs.DB_USER }} }}" >> .env
         echo "DB_PASSWORD=${{ steps.retrieve-secrets.outputs.DB_PASSWORD }} }}" >> .env
         echo "DB_NAME=${{ steps.retrieve-secrets.outputs.DB_NAME }} }}" >> .env
-        
+
         cat .env
         ls -a
 
