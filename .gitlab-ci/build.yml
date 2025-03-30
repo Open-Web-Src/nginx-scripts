@@ -1,14 +1,13 @@
-.set-env: &set-env
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      variables:
-        DEPLOY_ENV: "prod"
-    - if: '$CI_COMMIT_BRANCH == "stg"'
-      variables:
-        DEPLOY_ENV: "stg"
-    - if: '$CI_COMMIT_BRANCH == "dev"'
-      variables:
-        DEPLOY_ENV: "dev"
+.set-env-rules: &set-env-rules
+  - if: '$CI_COMMIT_BRANCH == "main"'
+    variables:
+      DEPLOY_ENV: "prod"
+  - if: '$CI_COMMIT_BRANCH == "stg"'
+    variables:
+      DEPLOY_ENV: "stg"
+  - if: '$CI_COMMIT_BRANCH == "dev"'
+    variables:
+      DEPLOY_ENV: "dev"
 
 build:
   stage: build
@@ -21,6 +20,6 @@ build:
   environment:
     name: $DEPLOY_ENV
   rules:
-    - *set-env
+    - *set-env-rules
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "push"'
