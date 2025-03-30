@@ -2,7 +2,7 @@
   stage: build
   script:
     - echo "Building app for $DEPLOY_ENV..."
-    - cd apis && npm run build
+    - npm run build
   artifacts:
     paths:
       - apis/dist/

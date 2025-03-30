@@ -25,7 +25,7 @@
     - echo "🚚 Transferring files to EC2..."
     - chmod 600 $EC2_SSH_KEY
     - scp -o StrictHostKeyChecking=no -i $EC2_SSH_KEY -r dist package.json package-lock.json .env $EC2_USER@$EC2_HOST:/home/$EC2_USER/nestjs-app/
-    - scp -o StrictHostKeyChecking=no -i $EC2_SSH_KEY -r sites $EC2_USER@$EC2_HOST:/home/$EC2_USER/
+    - scp -o StrictHostKeyChecking=no -i $EC2_SSH_KEY -r ../sites $EC2_USER@$EC2_HOST:/home/$EC2_USER/
 
     - echo "🚀 Deploying on EC2 for $DEPLOY_ENV..."
     - ssh -o StrictHostKeyChecking=no -i $EC2_SSH_KEY $EC2_USER@$EC2_HOST <<EOF

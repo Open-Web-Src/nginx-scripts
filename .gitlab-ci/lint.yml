@@ -2,7 +2,7 @@
   stage: lint
   script:
     - echo "Running linter for $DEPLOY_ENV..."
-    - cd apis && npm run lint
+    - npm run lint
 
 lint:prod:
   <<: *lint-template

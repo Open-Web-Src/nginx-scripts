@@ -2,7 +2,6 @@
   stage: test
   script:
     - echo "Running tests for $DEPLOY_ENV..."
-    - cd apis && ls -la dist/
     - npm run test
 
 test:prod:
