@@ -13,9 +13,9 @@ stages:
 
 workflow:
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
-    - if: '$CI_COMMIT_BRANCH == "stg" && $CI_PIPELINE_SOURCE == "push"'
-    - if: '$CI_COMMIT_BRANCH == "dev" && $CI_PIPELINE_SOURCE == "push"'
+    # Start pipeline on pushes and MRs for these branches
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "stg" || $CI_COMMIT_BRANCH == "dev"'
+      when: always
 
 default:
   image: node:18

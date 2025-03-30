@@ -9,3 +9,5 @@ test:
     - build
   environment:
     name: $DEPLOY_ENV
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
