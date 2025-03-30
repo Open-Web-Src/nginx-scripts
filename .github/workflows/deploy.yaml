@@ -69,3 +69,4 @@ jobs:
           pm2_app_name: ${{ secrets.PM2_APP_NAME }}
           aws_region: "${{ secrets.AWS_REGION }}"
           secret_id: "${{ env.DEPLOY_ENV }}/v1.0.0/database"
+          role_arn: ${{ secrets.ROLE_ARN }}
