@@ -1,0 +1,8 @@
+lint:
+  stage: lint
+  <<: *set-env
+  script:
+    - echo "Running linter for $DEPLOY_ENV..."
+    - cd apis && npm run lint
+  environment:
+    name: $DEPLOY_ENV

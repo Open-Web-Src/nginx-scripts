@@ -1,0 +1,43 @@
+include:
+  - local: .gitlab-ci/lint.yaml
+  - local: .gitlab-ci/build.yaml
+  - local: .gitlab-ci/test.yaml
+  - local: .gitlab-ci/deploy.yaml
+
+stages:
+  - lint
+  - build
+  - test
+  - deploy
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_COMMIT_BRANCH == "stg"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+default:
+  image: node:18
+  cache:
+    key: "$CI_COMMIT_REF_NAME-$(sha256sum package-lock.json | cut -d' ' -f1)"
+    paths:
+      - apis/node_modules/
+  before_script:
+    - cd apis
+    - npm ci
+
+variables:
+  GIT_STRATEGY: clone
+
+.set-env: &set-env
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      variables:
+        DEPLOY_ENV: "prod"
+    - if: '$CI_COMMIT_BRANCH == "stg"'
+      variables:
+        DEPLOY_ENV: "stg"
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      variables:
+        DEPLOY_ENV: "dev"
+
