@@ -20,6 +20,9 @@ inputs:
   secret_id:
     description: "AWS Secrets Manager Secret ID"
     required: true
+  role_arn:
+    description: "IAM Role to assume for OIDC"
+    required: true
 
 runs:
   using: "composite"
@@ -27,8 +30,8 @@ runs:
     - name: Configure AWS Credentials with OIDC
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: ${{ secrets.ROLE_ARN }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        role-to-assume: ${{ inputs.ROLE_ARN }}
+        aws-region: ${{ inputs.AWS_REGION }}
         
     - name: Retrieve secret from AWS Secrets Manager
       id: retrieve-secrets
