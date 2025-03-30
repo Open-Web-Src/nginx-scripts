@@ -38,11 +38,11 @@
           pm2 start dist/main.js --name $PM2_APP_NAME
         fi
       EOF
-  dependencies:
-    - build
 
 deploy:prod:
   <<: *deploy-template
+  dependencies:
+    - build:prod
   variables:
     DEPLOY_ENV: "prod"
   environment:
@@ -52,6 +52,8 @@ deploy:prod:
 
 deploy:stg:
   <<: *deploy-template
+  dependencies:
+    - build:stg
   variables:
     DEPLOY_ENV: "stg"
   environment:
@@ -61,6 +63,8 @@ deploy:stg:
 
 deploy:dev:
   <<: *deploy-template
+  dependencies:
+    - build:dev
   variables:
     DEPLOY_ENV: "dev"
   environment:

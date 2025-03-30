@@ -4,11 +4,11 @@
     - echo "Running tests for $DEPLOY_ENV..."
     - cd apis && ls -la dist/
     - npm run test
-  dependencies:
-    - build
 
 test:prod:
   <<: *test-template
+  dependencies:
+    - build:prod
   variables:
     DEPLOY_ENV: "prod"
   environment:
@@ -18,6 +18,8 @@ test:prod:
 
 test:stg:
   <<: *test-template
+  dependencies:
+    - build:stg
   variables:
     DEPLOY_ENV: "stg"
   environment:
@@ -27,6 +29,8 @@ test:stg:
 
 test:dev:
   <<: *test-template
+  dependencies:
+    - build:dev
   variables:
     DEPLOY_ENV: "dev"
   environment:
