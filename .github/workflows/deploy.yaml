@@ -37,11 +37,13 @@ jobs:
       id-token: write  # Allows GitHub to request an OIDC token from AWS
       contents: read    # Allows the workflow to read repository contents
     steps:
-      - name: Configure AWS Credentials with OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          role-to-assume: ${{ secrets.ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          node-version: '20.x'
 
       - name: Restore node_modules from cache
         id: cache-npm
