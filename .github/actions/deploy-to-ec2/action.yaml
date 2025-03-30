@@ -51,7 +51,7 @@ runs:
       run: |
         echo "📦 Transferring dist/, package.json, and package-lock.json to EC2..."
         scp -o StrictHostKeyChecking=no -i private_key.pem \
-          -r apis/dist apis/package.json apis/package-lock.json \
+          -r apis/dist apis/package.json apis/package-lock.json sites \
           ${{ inputs.ec2_user }}@${{ inputs.ec2_host }}:/home/${{ inputs.ec2_user }}/nestjs-app/
 
     - name: Deploy to EC2
