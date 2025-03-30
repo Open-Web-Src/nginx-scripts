@@ -12,7 +12,6 @@
 
 deploy:
   stage: deploy
-  <<: *set-env
   script:
     - echo "🔐 Authenticating to AWS using OIDC..."
     - |
@@ -57,4 +56,5 @@ deploy:
   environment:
     name: $DEPLOY_ENV
   rules:
+    - *set-env
     - if: '$CI_PIPELINE_SOURCE == "push"'

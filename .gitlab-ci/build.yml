@@ -12,7 +12,6 @@
 
 build:
   stage: build
-  <<: *set-env
   script:
     - echo "Building app for $DEPLOY_ENV..."
     - cd apis && npm run build
@@ -22,5 +21,6 @@ build:
   environment:
     name: $DEPLOY_ENV
   rules:
+    - *set-env
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "push"'
