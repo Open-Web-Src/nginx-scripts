@@ -49,10 +49,10 @@ runs:
     - name: Write .env file locally
       shell: bash
       run: |
-        echo "DB_HOST=${{ steps.retrieve-secrets.outputs.DB_HOST }}" > .env
-        echo "DB_USER=${{ steps.retrieve-secrets.outputs.DB_USER }}" >> .env
-        echo "DB_PASSWORD=${{ steps.retrieve-secrets.outputs.DB_PASSWORD }}" >> .env
-        echo "DB_NAME=${{ steps.retrieve-secrets.outputs.DB_NAME }}" >> .env
+        echo "DB_HOST=$DB_HOST" > .env
+        echo "DB_USER=$DB_USER" >> .env
+        echo "DB_PASSWORD=$DB_PASSWORD" >> .env
+        echo "DB_NAME=$DB_NAME" >> .env
 
     - name: Transfer NestJS App Files to EC2
       shell: bash
