@@ -1,6 +1,14 @@
 .deploy-template: &deploy-template
-  image: amazon/aws-cli:2.15.13
   stage: deploy
+  before_script:
+    - apt-get update && apt-get install -y unzip curl jq openssh-client
+    - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    - unzip awscliv2.zip
+    - ./aws/install
+    - aws --version
+    - jq --version
+    - cd apis
+    - npm ci
   script:
     - echo "🔐 Authenticating to AWS using OIDC..."
     - |
