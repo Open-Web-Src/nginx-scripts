@@ -1,21 +1,32 @@
-.set-env-rules: &set-env-rules
-  - if: '$CI_COMMIT_BRANCH == "main"'
-    variables:
-      DEPLOY_ENV: "prod"
-  - if: '$CI_COMMIT_BRANCH == "stg"'
-    variables:
-      DEPLOY_ENV: "stg"
-  - if: '$CI_COMMIT_BRANCH == "dev"'
-    variables:
-      DEPLOY_ENV: "dev"
-
-lint:
+.lint-template: &lint-template
   stage: lint
   script:
     - echo "Running linter for $DEPLOY_ENV..."
     - cd apis && npm run lint
+
+lint:prod:
+  <<: *lint-template
+  variables:
+    DEPLOY_ENV: "prod"
+  environment:
+    name: prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+lint:stg:
+  <<: *lint-template
+  variables:
+    DEPLOY_ENV: "stg"
+  environment:
+    name: stg
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "stg" &&$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+lint:dev:
+  <<: *lint-template
+  variables:
+    DEPLOY_ENV: "dev"
   environment:
     name: dev
   rules:
-    - *set-env-rules
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "dev" && $CI_PIPELINE_SOURCE == "merge_request_event"'

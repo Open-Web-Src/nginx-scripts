@@ -1,15 +1,4 @@
-.set-env-rules: &set-env-rules
-  - if: '$CI_COMMIT_BRANCH == "main"'
-    variables:
-      DEPLOY_ENV: "prod"
-  - if: '$CI_COMMIT_BRANCH == "stg"'
-    variables:
-      DEPLOY_ENV: "stg"
-  - if: '$CI_COMMIT_BRANCH == "dev"'
-    variables:
-      DEPLOY_ENV: "dev"
-
-test:
+.test-template: &test-template
   stage: test
   script:
     - echo "Running tests for $DEPLOY_ENV..."
@@ -17,8 +6,30 @@ test:
     - npm run test
   dependencies:
     - build
+
+test:prod:
+  <<: *test-template
+  variables:
+    DEPLOY_ENV: "prod"
   environment:
-    name: $DEPLOY_ENV
+    name: prod
   rules:
-    - *set-env-rules
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+test:stg:
+  <<: *test-template
+  variables:
+    DEPLOY_ENV: "stg"
+  environment:
+    name: stg
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "stg" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+test:dev:
+  <<: *test-template
+  variables:
+    DEPLOY_ENV: "dev"
+  environment:
+    name: dev
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" && $CI_PIPELINE_SOURCE == "merge_request_event"'

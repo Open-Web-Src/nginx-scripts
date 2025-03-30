@@ -1,15 +1,4 @@
-.set-env-rules: &set-env-rules
-  - if: '$CI_COMMIT_BRANCH == "main"'
-    variables:
-      DEPLOY_ENV: "prod"
-  - if: '$CI_COMMIT_BRANCH == "stg"'
-    variables:
-      DEPLOY_ENV: "stg"
-  - if: '$CI_COMMIT_BRANCH == "dev"'
-    variables:
-      DEPLOY_ENV: "dev"
-
-build:
+.build-template: &build-template
   stage: build
   script:
     - echo "Building app for $DEPLOY_ENV..."
@@ -17,9 +6,30 @@ build:
   artifacts:
     paths:
       - apis/dist/
+
+build:prod:
+  <<: *build-template
+  variables:
+    DEPLOY_ENV: "prod"
   environment:
-    name: $DEPLOY_ENV
+    name: prod
   rules:
-    - *set-env-rules
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_COMMIT_BRANCH == "main" && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push")'
+
+build:stg:
+  <<: *build-template
+  variables:
+    DEPLOY_ENV: "stg"
+  environment:
+    name: stg
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "stg" && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push")'
+
+build:dev:
+  <<: *build-template
+  variables:
+    DEPLOY_ENV: "dev"
+  environment:
+    name: dev
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push")'

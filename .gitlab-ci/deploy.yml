@@ -1,15 +1,4 @@
-.set-env-rules: &set-env-rules
-  - if: '$CI_COMMIT_BRANCH == "main"'
-    variables:
-      DEPLOY_ENV: "prod"
-  - if: '$CI_COMMIT_BRANCH == "stg"'
-    variables:
-      DEPLOY_ENV: "stg"
-  - if: '$CI_COMMIT_BRANCH == "dev"'
-    variables:
-      DEPLOY_ENV: "dev"
-
-deploy:
+.deploy-template: &deploy-template
   stage: deploy
   script:
     - echo "🔐 Authenticating to AWS using OIDC..."
@@ -49,11 +38,32 @@ deploy:
           pm2 start dist/main.js --name $PM2_APP_NAME
         fi
       EOF
-
   dependencies:
     - build
+
+deploy:prod:
+  <<: *deploy-template
+  variables:
+    DEPLOY_ENV: "prod"
   environment:
-    name: $DEPLOY_ENV
+    name: prod
   rules:
-    - *set-env-rules
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
+
+deploy:stg:
+  <<: *deploy-template
+  variables:
+    DEPLOY_ENV: "stg"
+  environment:
+    name: stg
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "stg" && $CI_PIPELINE_SOURCE == "push"'
+
+deploy:dev:
+  <<: *deploy-template
+  variables:
+    DEPLOY_ENV: "dev"
+  environment:
+    name: dev
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" && $CI_PIPELINE_SOURCE == "push"'

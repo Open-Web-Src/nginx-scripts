@@ -23,7 +23,10 @@ workflow:
 default:
   image: node:18
   cache:
-    key: "$CI_COMMIT_REF_NAME-$(sha256sum package-lock.json | cut -d' ' -f1)"
+    key:
+      files:
+        - apis/package-lock.json
+      prefix: "$CI_COMMIT_REF_NAME"
     paths:
       - apis/node_modules/
   before_script:
