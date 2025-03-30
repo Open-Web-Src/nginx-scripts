@@ -14,7 +14,7 @@ test:prod:
   environment:
     name: prod
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"'
 
 test:stg:
   <<: *test-template
@@ -25,7 +25,7 @@ test:stg:
   environment:
     name: stg
   rules:
-    - if: '$CI_COMMIT_BRANCH == "stg" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "stg" && $CI_PIPELINE_SOURCE == "merge_request_event"'
 
 test:dev:
   <<: *test-template
@@ -36,4 +36,4 @@ test:dev:
   environment:
     name: dev
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev" && $CI_PIPELINE_SOURCE == "merge_request_event"'
