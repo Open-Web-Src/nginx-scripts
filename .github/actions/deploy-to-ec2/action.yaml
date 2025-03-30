@@ -39,6 +39,7 @@ runs:
       with:
         secret-ids: "${{ inputs.secret_id }}"
         parse-json-secrets: true
+        name-transformation: none
 
     - name: Setup SSH Key
       shell: bash
