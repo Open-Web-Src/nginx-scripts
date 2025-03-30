@@ -45,15 +45,6 @@ jobs:
         with:
           node-version: '20.x'
 
-      - name: Restore node_modules from cache
-        id: cache-npm
-        uses: actions/cache@v4
-        with:
-          path: apis/node_modules
-          key: ${{ needs.ci.outputs.cache-key }}
-          restore-keys: |
-            ${{ env.DEPLOY_ENV }}-
-
       - name: Download Build Artifact
         uses: actions/download-artifact@v4
         with:
