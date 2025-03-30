@@ -33,40 +33,25 @@ runs:
         role-to-assume: ${{ inputs.ROLE_ARN }}
         aws-region: ${{ inputs.AWS_REGION }}
         
-    - name: Retrieve secret from AWS Secrets Manager
-      id: retrieve-secrets
-      uses: aws-actions/aws-secretsmanager-get-secrets@v2
-      with:
-        secret-ids: "${{ inputs.secret_id }}"
-        parse-json-secrets: true
-        name-transformation: none
-
-    - name: Write .env file from secrets
+    - name: Fetch Secrets via AWS CLI and write .env
       shell: bash
       run: |
-        # Get all environment variables that start with the secret name and write them to .env without prefix
-        for var in $(env | grep "^${{ inputs.secret_id }}_" | cut -d= -f1); do
-          # Get the value
-          value="${!var}"
-          # Remove the prefix to get the actual variable name
-          clean_var="${var#${{ inputs.secret_id }}_}"
-          # Write to .env file
-          echo "$clean_var=$value" >> .env
-        done
+        aws secretsmanager get-secret-value \
+          --secret-id "${{ inputs.secret_id }}" \
+          --query SecretString \
+          --output text > secret.json
+
+        jq -r 'to_entries[] | "\(.key)=\(.value)"' secret.json > .env
+
+        cat .env
+      env:
+        AWS_DEFAULT_REGION: ${{ inputs.aws_region }}
 
     - name: Setup SSH Key
       shell: bash
       run: |
         echo "${{ inputs.ec2_ssh_key }}" > private_key.pem
         chmod 600 private_key.pem
-
-    # - name: Write .env file locally
-    #   shell: bash
-    #   run: |
-    #     echo "DB_HOST=$DB_HOST" > .env
-    #     echo "DB_USER=$DB_USER" >> .env
-    #     echo "DB_PASSWORD=$DB_PASSWORD" >> .env
-    #     echo "DB_NAME=$DB_NAME" >> .env
 
     - name: Transfer NestJS App Files to EC2
       shell: bash
