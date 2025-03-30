@@ -42,8 +42,6 @@ runs:
           --output text > secret.json
 
         jq -r 'to_entries[] | "\(.key)=\(.value)"' secret.json > .env
-
-        cat .env
       env:
         AWS_DEFAULT_REGION: ${{ inputs.aws_region }}
 
