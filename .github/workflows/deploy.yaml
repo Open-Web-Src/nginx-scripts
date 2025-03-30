@@ -36,38 +36,34 @@ jobs:
     permissions:
       id-token: write  # Allows GitHub to request an OIDC token from AWS
       contents: read    # Allows the workflow to read repository contents
-
     steps:
-      - run: echo ${{ env.DEPLOY_ENV }}
-      - run: echo ${{ needs.ci.outputs.cache-key }}
-      # - name: Configure AWS Credentials with OIDC
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     role-to-assume: ${{ secrets.ROLE_ARN }}
-      #     aws-region: ${{ secrets.AWS_REGION }}
+      - name: Configure AWS Credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      # - name: Download Build Artifact
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: nestjs-build-${{ env.DEPLOY_ENV }}
-      #     path: apis/dist/
+      - name: Restore node_modules from cache
+        id: cache-npm
+        uses: actions/cache@v4
+        with:
+          path: apis/node_modules
+          key: ${{ needs.ci.outputs.cache-key }}
+          restore-keys: |
+            ${{ env.DEPLOY_ENV }}-
 
-      # - name: Restore node_modules from cache
-      #   id: cache-npm
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: apis/node_modules
-      #     key: ${{ needs.ci.outputs.cache-key }}
-      #     restore-keys: |
-      #       ${{ env.DEPLOY_ENV }}-
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nestjs-build-${{ env.DEPLOY_ENV }}
+          path: apis/dist/
 
-      # - name: Deploy using Composite Action
-      #   uses: ./.github/actions/deploy-to-ec2
-      #   with:
-      #     deploy_env: ${{ env.DEPLOY_ENV }}
-      #     ec2_host: ${{ secrets.EC2_HOST_${{ upper(env.DEPLOY_ENV) }} }}
-      #     ec2_user: ${{ secrets.EC2_USER_${{ upper(env.DEPLOY_ENV) }} }}
-      #     ec2_ssh_key: ${{ secrets.EC2_SSH_KEY_${{ upper(env.DEPLOY_ENV) }} }}
-      #     pm2_app_name: ${{ secrets.PM2_APP_NAME_${{ upper(env.DEPLOY_ENV) }} }}
-      #     aws_region: "us-east-1"
-      #     secret_id: "/${{ env.DEPLOY_ENV }}/v1.0.0/database"
+      - name: Deploy using Composite Action
+        uses: ./.github/actions/deploy-to-ec2
+        with:
+          ec2_host: ${{ secrets.EC2_HOST }}
+          ec2_user: ${{ secrets.EC2_USER }}
+          ec2_ssh_key: ${{ secrets.EC2_SSH_KEY }}
+          pm2_app_name: ${{ secrets.PM2_APP_NAME }}
+          aws_region: "${{ secrets.AWS_REGION }}"
+          secret_id: "${{ env.DEPLOY_ENV }}/v1.0.0/database"

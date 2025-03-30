@@ -40,7 +40,8 @@ cd nginx-1.24.0
     --http-log-path=/var/log/nginx/access.log \
     --pid-path=/var/run/nginx.pid \
     --with-pcre \
-    --with-http_ssl_module
+    --with-http_ssl_module \
+    --with-http_v2_module
 ```
 
 ## 📥 🏗️ Step 5: Compile and Install Nginx
