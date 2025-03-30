@@ -15,7 +15,7 @@ lint:
     - echo "Running linter for $DEPLOY_ENV..."
     - cd apis && npm run lint
   environment:
-    name: $DEPLOY_ENV
+    name: dev
   rules:
     - *set-env-rules
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
