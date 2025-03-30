@@ -1,3 +1,10 @@
+include:
+  - local: .gitlab-ci/includes/env-vars.yaml
+  - local: .gitlab-ci/lint.yaml
+  - local: .gitlab-ci/build.yaml
+  - local: .gitlab-ci/test.yaml
+  - local: .gitlab-ci/deploy.yaml
+
 stages:
   - lint
   - build
@@ -22,22 +29,3 @@ default:
 
 variables:
   GIT_STRATEGY: clone
-
-.set-env: &set-env
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      variables:
-        DEPLOY_ENV: "prod"
-    - if: '$CI_COMMIT_BRANCH == "stg"'
-      variables:
-        DEPLOY_ENV: "stg"
-    - if: '$CI_COMMIT_BRANCH == "dev"'
-      variables:
-        DEPLOY_ENV: "dev"
-
-include:
-  - local: .gitlab-ci/lint.yaml
-  - local: .gitlab-ci/build.yaml
-  - local: .gitlab-ci/test.yaml
-  - local: .gitlab-ci/deploy.yaml
-
