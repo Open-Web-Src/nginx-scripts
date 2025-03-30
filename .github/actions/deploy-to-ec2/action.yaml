@@ -41,6 +41,19 @@ runs:
         parse-json-secrets: true
         name-transformation: none
 
+    - name: Write .env file from secrets
+      shell: bash
+      run: |
+        # Get all environment variables that start with the secret name and write them to .env without prefix
+        for var in $(env | grep "^${{ inputs.secret_id }}_" | cut -d= -f1); do
+          # Get the value
+          value="${!var}"
+          # Remove the prefix to get the actual variable name
+          clean_var="${var#${{ inputs.secret_id }}_}"
+          # Write to .env file
+          echo "$clean_var=$value" >> .env
+        done
+
     - name: Setup SSH Key
       shell: bash
       run: |
