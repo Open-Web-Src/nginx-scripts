@@ -1,9 +1,3 @@
-include:
-  - local: .gitlab-ci/lint.yaml
-  - local: .gitlab-ci/build.yaml
-  - local: .gitlab-ci/test.yaml
-  - local: .gitlab-ci/deploy.yaml
-
 stages:
   - lint
   - build
@@ -40,4 +34,10 @@ variables:
     - if: '$CI_COMMIT_BRANCH == "dev"'
       variables:
         DEPLOY_ENV: "dev"
+
+include:
+  - local: .gitlab-ci/lint.yaml
+  - local: .gitlab-ci/build.yaml
+  - local: .gitlab-ci/test.yaml
+  - local: .gitlab-ci/deploy.yaml
 
