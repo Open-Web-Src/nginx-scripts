@@ -1,4 +1,4 @@
-.set-deploy-env: &set-deploy-env
+.set-env: &set-env
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       variables:
