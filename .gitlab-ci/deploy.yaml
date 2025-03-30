@@ -1,0 +1,50 @@
+deploy:
+  stage: deploy
+  <<: *set-env
+  script:
+    - echo "🔐 Authenticating to AWS using OIDC..."
+    - |
+      export CREDS=$(aws sts assume-role-with-web-identity \
+        --role-arn "$ROLE_ARN" \
+        --role-session-name "gitlab-deploy-session" \
+        --web-identity-token "$CI_JOB_JWT_V2" \
+        --duration-seconds 3600)
+      export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r .Credentials.AccessKeyId)
+      export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r .Credentials.SecretAccessKey)
+      export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r .Credentials.SessionToken)
+
+    - echo "🔐 Fetching secrets from AWS Secrets Manager..."
+    - |
+      export SECRET=$(aws secretsmanager get-secret-value \
+        --secret-id "${DEPLOY_ENV}/v1.0.0/database" \
+        --query SecretString \
+        --output text)
+
+    - echo "🔐 Writing .env from secrets..."
+    - echo "$SECRET" | jq -r 'to_entries[] | "\(.key)=\(.value)"' > .env
+
+    - echo "🚚 Transferring files to EC2..."
+    - chmod 600 $EC2_SSH_KEY
+    - scp -o StrictHostKeyChecking=no -i $EC2_SSH_KEY -r dist package.json package-lock.json .env $EC2_USER@$EC2_HOST:/home/$EC2_USER/nestjs-app/
+    - scp -o StrictHostKeyChecking=no -i $EC2_SSH_KEY -r sites $EC2_USER@$EC2_HOST:/home/$EC2_USER/
+
+    - echo "🚀 Deploying on EC2 for $DEPLOY_ENV..."
+    - ssh -o StrictHostKeyChecking=no -i $EC2_SSH_KEY $EC2_USER@$EC2_HOST <<EOF
+        set -e
+        cd /home/$EC2_USER/nestjs-app
+        npm ci
+        if pm2 describe $PM2_APP_NAME > /dev/null; then
+          pm2 restart $PM2_APP_NAME --update-env
+        else
+          pm2 start dist/main.js --name $PM2_APP_NAME
+        fi
+      EOF
+
+  dependencies:
+    - build
+  environment:
+    name: $DEPLOY_ENV
+  only:
+    - dev
+    - stg
+    - main
