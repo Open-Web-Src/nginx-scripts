@@ -1,5 +1,8 @@
 .deploy-template: &deploy-template
   stage: deploy
+  id_tokens:
+    AWS_ID_TOKEN:
+      aud: gitlab-ci
   before_script:
     - apt-get update && apt-get install -y unzip curl jq openssh-client
     - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -32,12 +35,13 @@
     - echo "$SECRET" | jq -r 'to_entries[] | "\(.key)=\(.value)"' > .env
 
     - echo "🚚 Transferring files to EC2..."
-    - chmod 600 $EC2_SSH_KEY
-    - scp -o StrictHostKeyChecking=no -i $EC2_SSH_KEY -r dist package.json package-lock.json .env $EC2_USER@$EC2_HOST:/home/$EC2_USER/nestjs-app/
-    - scp -o StrictHostKeyChecking=no -i $EC2_SSH_KEY -r ../sites $EC2_USER@$EC2_HOST:/home/$EC2_USER/
+    - echo "$EC2_SSH_KEY" > private_key.pem
+    - chmod 600 private_key.pem
+    - scp -o StrictHostKeyChecking=no -i private_key.pem -r dist package.json package-lock.json .env $EC2_USER@$EC2_HOST:/home/$EC2_USER/nestjs-app/
+    - scp -o StrictHostKeyChecking=no -i private_key.pem -r ../sites $EC2_USER@$EC2_HOST:/home/$EC2_USER/
 
     - echo "🚀 Deploying on EC2 for $DEPLOY_ENV..."
-    - ssh -o StrictHostKeyChecking=no -i $EC2_SSH_KEY $EC2_USER@$EC2_HOST <<EOF
+    - ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST <<EOF
         set -e
         cd /home/$EC2_USER/nestjs-app
         npm ci
