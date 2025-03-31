@@ -1,0 +1,37 @@
+include:
+  - local: .gitlab-ci/lint.yml
+  - local: .gitlab-ci/build.yml
+  - local: .gitlab-ci/test.yml
+  - local: .gitlab-ci/deploy.yml
+
+stages:
+  - lint
+  - build
+  - test
+  - deploy
+
+workflow:
+  rules:
+    # Run pipeline for merge requests targeting specific branches
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "stg" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
+      when: always
+
+    # Also run on direct push to main/stg/dev
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "stg" || $CI_COMMIT_BRANCH == "dev"'
+      when: always
+
+default:
+  image: node:18
+  cache:
+    key:
+      files:
+        - apis/package-lock.json
+      prefix: "$CI_COMMIT_REF_NAME"
+    paths:
+      - apis/node_modules/
+  before_script:
+    - cd apis
+    - npm ci
+
+variables:
+  GIT_STRATEGY: clone

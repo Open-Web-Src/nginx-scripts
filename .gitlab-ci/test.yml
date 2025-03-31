@@ -1,0 +1,38 @@
+.test-template: &test-template
+  stage: test
+  script:
+    - echo "Running tests for $DEPLOY_ENV..."
+    - npm run test
+
+test:prod:
+  <<: *test-template
+  dependencies:
+    - build:prod
+  variables:
+    DEPLOY_ENV: "prod"
+  environment:
+    name: prod
+  rules:
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+test:stg:
+  <<: *test-template
+  dependencies:
+    - build:stg
+  variables:
+    DEPLOY_ENV: "stg"
+  environment:
+    name: stg
+  rules:
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "stg" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+test:dev:
+  <<: *test-template
+  dependencies:
+    - build:dev
+  variables:
+    DEPLOY_ENV: "dev"
+  environment:
+    name: dev
+  rules:
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev" && $CI_PIPELINE_SOURCE == "merge_request_event"'

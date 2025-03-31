@@ -1,0 +1,86 @@
+name: "Deploy to EC2"
+description: "Deploys NestJS app to EC2"
+
+inputs:
+  ec2_host:
+    description: "EC2 instance IP"
+    required: true
+  ec2_user:
+    description: "EC2 SSH User"
+    required: true
+  ec2_ssh_key:
+    description: "EC2 Private SSH Key"
+    required: true
+  pm2_app_name:
+    description: "PM2 process name"
+    required: true
+  aws_region:
+    description: "AWS Region"
+    required: true
+  secret_id:
+    description: "AWS Secrets Manager Secret ID"
+    required: true
+  role_arn:
+    description: "IAM Role to assume for OIDC"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure AWS Credentials with OIDC
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.ROLE_ARN }}
+        aws-region: ${{ inputs.AWS_REGION }}
+        
+    - name: Fetch Secrets via AWS CLI and write .env
+      shell: bash
+      run: |
+        aws secretsmanager get-secret-value \
+          --secret-id "${{ inputs.secret_id }}" \
+          --query SecretString \
+          --output text > secret.json
+
+        jq -r 'to_entries[] | "\(.key)=\(.value)"' secret.json > .env
+      env:
+        AWS_DEFAULT_REGION: ${{ inputs.aws_region }}
+
+    - name: Setup SSH Key
+      shell: bash
+      run: |
+        echo "${{ inputs.ec2_ssh_key }}" > private_key.pem
+        chmod 600 private_key.pem
+
+    - name: Transfer NestJS App Files to EC2
+      shell: bash
+      run: |
+        echo "📦 Transferring dist/, package.json, package-lock.json, and .env..."
+        scp -o StrictHostKeyChecking=no -i private_key.pem \
+          -r .env apis/dist apis/package.json apis/package-lock.json \
+          ${{ inputs.ec2_user }}@${{ inputs.ec2_host }}:/home/${{ inputs.ec2_user }}/nestjs-app/
+
+    - name: Transfer Static Site to /home/${{ inputs.ec2_user }}
+      shell: bash
+      run: |
+        echo "🌐 Transferring static site folder..."
+        scp -o StrictHostKeyChecking=no -i private_key.pem -r sites \
+          ${{ inputs.ec2_user }}@${{ inputs.ec2_host }}:/home/${{ inputs.ec2_user }}/
+
+    - name: Deploy on EC2
+      shell: bash
+      run: |
+        ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ inputs.ec2_user }}@${{ inputs.ec2_host }} << EOF
+        set -e
+        cd /home/${{ inputs.ec2_user }}/nestjs-app
+
+        echo "📦 Installing dependencies..."
+        npm ci
+
+        echo "🚀 Starting or restarting app with PM2..."
+        if pm2 describe ${{ inputs.pm2_app_name }} > /dev/null; then
+          pm2 restart ${{ inputs.pm2_app_name }} --update-env
+        else
+          pm2 start dist/main.js --name ${{ inputs.pm2_app_name }}
+        fi
+        EOF
+
