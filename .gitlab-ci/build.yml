@@ -1,0 +1,38 @@
+.build-template: &build-template
+  stage: build
+  script:
+    - echo "Building app for $DEPLOY_ENV..."
+    - npm run build
+  artifacts:
+    paths:
+      - apis/dist/
+
+build:prod:
+  <<: *build-template
+  variables:
+    DEPLOY_ENV: "prod"
+  environment:
+    name: prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"' 
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+build:stg:
+  <<: *build-template
+  variables:
+    DEPLOY_ENV: "stg"
+  environment:
+    name: stg
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "stg" && $CI_PIPELINE_SOURCE == "push"' 
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "stg" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+build:dev:
+  <<: *build-template
+  variables:
+    DEPLOY_ENV: "dev"
+  environment:
+    name: dev
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" && $CI_PIPELINE_SOURCE == "push"' 
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev" && $CI_PIPELINE_SOURCE == "merge_request_event"'

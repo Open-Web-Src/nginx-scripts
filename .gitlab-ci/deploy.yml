@@ -1,0 +1,95 @@
+.deploy-template: &deploy-template
+  stage: deploy
+  id_tokens:
+    AWS_ID_TOKEN:
+      aud: https://gitlab.com
+  before_script:
+    - apt-get update && apt-get install -y unzip curl jq openssh-client
+    - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    - unzip awscliv2.zip
+    - ./aws/install
+    - aws --version
+    - jq --version
+    - cd apis
+    - npm ci
+  script:
+    - set -e
+    - echo "🔐 Authenticating to AWS using OIDC..."
+    - |
+      if [ -z "$AWS_ID_TOKEN" ]; then
+        echo "❌ AWS_ID_TOKEN is missing! Did GitLab inject it?";
+        exit 1;
+      fi
+      echo "🔐 Token preview: ${AWS_ID_TOKEN:0:20}... (length: ${#AWS_ID_TOKEN})"
+    - |
+      export CREDS=$(aws sts assume-role-with-web-identity \
+        --role-arn "$ROLE_ARN" \
+        --role-session-name "gitlab-deploy-session" \
+        --web-identity-token "$AWS_ID_TOKEN" \
+        --duration-seconds 3600)
+      export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r .Credentials.AccessKeyId)
+      export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r .Credentials.SecretAccessKey)
+      export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r .Credentials.SessionToken)
+
+    - echo "🔐 Fetching secrets from AWS Secrets Manager..."
+    - |
+      export SECRET=$(aws secretsmanager get-secret-value \
+        --secret-id "${DEPLOY_ENV}/v1.0.0/database" \
+        --query SecretString \
+        --output text)
+
+    - echo "🔐 Writing .env from secrets..."
+    - echo "$SECRET" | jq -r 'to_entries[] | "\(.key)=\(.value)"' > .env
+
+    - echo "🚚 Transferring files to EC2..."
+    - echo "$EC2_SSH_KEY" > private_key.pem
+    - chmod 600 private_key.pem
+    - scp -o StrictHostKeyChecking=no -i private_key.pem -r dist package.json package-lock.json .env $EC2_USER@$EC2_HOST:/home/$EC2_USER/nestjs-app/
+    - scp -o StrictHostKeyChecking=no -i private_key.pem -r ../sites $EC2_USER@$EC2_HOST:/home/$EC2_USER/
+
+    - |
+      echo "🚀 Deploying on EC2 for $DEPLOY_ENV..."
+      ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST bash <<EOSSH
+        set -e
+        cd /home/$EC2_USER/nestjs-app
+        npm ci
+        if pm2 describe "$PM2_APP_NAME" > /dev/null; then
+          pm2 restart "$PM2_APP_NAME" --update-env
+        else
+          pm2 start dist/main.js --name "$PM2_APP_NAME"
+        fi
+      EOSSH
+
+
+deploy:prod:
+  <<: *deploy-template
+  dependencies:
+    - build:prod
+  variables:
+    DEPLOY_ENV: "prod"
+  environment:
+    name: prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
+
+deploy:stg:
+  <<: *deploy-template
+  dependencies:
+    - build:stg
+  variables:
+    DEPLOY_ENV: "stg"
+  environment:
+    name: stg
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "stg" && $CI_PIPELINE_SOURCE == "push"'
+
+deploy:dev:
+  <<: *deploy-template
+  dependencies:
+    - build:dev
+  variables:
+    DEPLOY_ENV: "dev"
+  environment:
+    name: dev
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" && $CI_PIPELINE_SOURCE == "push"'
