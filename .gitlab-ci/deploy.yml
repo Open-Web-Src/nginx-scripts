@@ -47,17 +47,18 @@
     - scp -o StrictHostKeyChecking=no -i private_key.pem -r dist package.json package-lock.json .env $EC2_USER@$EC2_HOST:/home/$EC2_USER/nestjs-app/
     - scp -o StrictHostKeyChecking=no -i private_key.pem -r ../sites $EC2_USER@$EC2_HOST:/home/$EC2_USER/
 
-    - echo "🚀 Deploying on EC2 for $DEPLOY_ENV..."
-    - ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST <<EOF
+    - |
+      echo "🚀 Deploying on EC2 for $DEPLOY_ENV..."
+      ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST bash <<'EOSSH'
         set -e
         cd /home/$EC2_USER/nestjs-app
         npm ci
-        if pm2 describe $PM2_APP_NAME > /dev/null; then
-          pm2 restart $PM2_APP_NAME --update-env
+        if pm2 describe "$PM2_APP_NAME" > /dev/null; then
+          pm2 restart "$PM2_APP_NAME" --update-env
         else
-          pm2 start dist/main.js --name $PM2_APP_NAME
+          pm2 start dist/main.js --name "$PM2_APP_NAME"
         fi
-      EOF
+      EOSSH
 
 deploy:prod:
   <<: *deploy-template
